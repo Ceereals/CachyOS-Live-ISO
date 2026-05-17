@@ -1,0 +1,36 @@
+# Maintainer: Shokunin <https://repo.ceereals.space>
+#
+# shokunin-mirrorlist — ships /etc/pacman.d/shokunin-mirrorlist.
+#
+# Currently we serve from a single origin (Swiss server behind
+# Cloudflare/Traefik), so the file lists one Server= line. The file
+# exists anyway because:
+#   - the `Include = /etc/pacman.d/shokunin-mirrorlist` pattern in
+#     pacman.conf is the idiomatic way to swap mirrors without editing
+#     pacman.conf itself,
+#   - users (or `reflector`-like tooling) can append mirrors when we
+#     have more than one,
+#   - it gives us a single file to update if we ever change the host.
+
+# shellcheck disable=SC2034,SC2154
+
+pkgname=shokunin-mirrorlist
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Shokunin pacman mirrorlist"
+arch=('any')
+url="https://repo.ceereals.space"
+license=('GPL-3.0-or-later')
+
+# Users may edit the mirrorlist (uncomment a closer mirror); flag it as
+# `backup` so pacman saves their changes as .pacnew on upgrade rather
+# than overwriting them.
+backup=('etc/pacman.d/shokunin-mirrorlist')
+
+source=('mirrorlist')
+sha256sums=('SKIP')
+
+package() {
+  install -Dm644 "${srcdir}/mirrorlist" \
+    "${pkgdir}/etc/pacman.d/shokunin-mirrorlist"
+}

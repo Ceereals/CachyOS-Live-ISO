@@ -1,0 +1,51 @@
+# Maintainer: Shokunin <https://repo.ceereals.space>
+#
+# shokunin-quickshell-config — default user configuration for the single
+# Shokunin desktop: Quickshell on top of Hyprland.
+#
+# Two install strategies are common; we use SKEL.
+#
+#   (a) Skel: drop files under /etc/skel/.config/. New users (and the
+#       Calamares-created account) get a personal copy at account
+#       creation. Upgrades to this package do NOT overwrite the user's
+#       config. The canonical source also ships under /usr/share/...
+#       so users can diff and merge.
+#
+#   (b) Source-from-share: ship configs under /usr/share/ and have the
+#       user's `~/.config/.../*.conf` `source` them. Upgrades land
+#       instantly, but the user can't easily diverge.
+#
+# (a) is friendlier and matches what most distros do. See
+# `OPEN_QUESTIONS.md` §2.
+
+# shellcheck disable=SC2034,SC2154
+
+pkgname=shokunin-quickshell-config
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Default Quickshell + Hyprland configuration for Shokunin"
+arch=('any')
+url="https://repo.ceereals.space"
+license=('GPL-3.0-or-later')
+depends=(
+  'hyprland'
+  'quickshell'
+)
+
+# `config/` is a directory in the package source. makepkg sees the
+# trailing slash and copies it recursively into $srcdir.
+source=('config/')
+sha256sums=('SKIP')
+
+package() {
+  # Install the canonical, untouched version under /usr/share/ so users
+  # can diff against the upstream defaults.
+  install -d "${pkgdir}/usr/share/shokunin"
+  cp -r "${srcdir}/config" "${pkgdir}/usr/share/shokunin/quickshell-config"
+
+  # Drop the same files into /etc/skel/.config/ so new users get them
+  # at account-creation time.
+  install -d "${pkgdir}/etc/skel/.config"
+  cp -r "${srcdir}/config/quickshell" "${pkgdir}/etc/skel/.config/quickshell"
+  cp -r "${srcdir}/config/hypr"       "${pkgdir}/etc/skel/.config/hypr"
+}

@@ -1,0 +1,20 @@
+# shokunin-keyring.install — runs on install/upgrade to make the
+# shokunin keyring trusted by pacman.
+#
+# `pacman-key` operates on the system keyring at /etc/pacman.d/gnupg/.
+# `--add` imports a keyring file. `--lsign-key` marks the key as locally
+# trusted, which is what makes pacman accept signatures from it.
+
+post_upgrade() {
+  if usr/bin/pacman-key --add usr/share/pacman/keyrings/shokunin.gpg; then
+    while read -r key; do
+      # Skip blank lines and comments.
+      [[ -z "${key}" || "${key}" == \#* ]] && continue
+      usr/bin/pacman-key --lsign-key "${key}"
+    done < usr/share/pacman/keyrings/shokunin-trusted
+  fi
+}
+
+post_install() {
+  post_upgrade
+}

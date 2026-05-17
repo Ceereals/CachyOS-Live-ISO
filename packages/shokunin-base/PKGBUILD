@@ -1,0 +1,55 @@
+# Maintainer: Shokunin <https://repo.ceereals.space>
+#
+# shokunin-base — meta-package. The single source of truth for "what's
+# on every Shokunin install". Adding/removing a `depends=()` entry here
+# is how we curate the system. The package itself ships no files.
+
+# PKGBUILDs are sourced by makepkg, not executed. shellcheck doesn't
+# know that, so it complains about every metadata var (pkgname, etc.)
+# being unused and about $srcdir/$pkgdir being unassigned. Disable both.
+# shellcheck disable=SC2034,SC2154
+
+pkgname=shokunin-base
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Shokunin meta-package: kernel, branding, default desktop stack"
+arch=('any')
+url="https://repo.ceereals.space"
+license=('GPL-3.0-or-later')
+groups=('shokunin')
+
+# --- depends ---
+#
+# Grouped by category. Keep the groups; if a line moves, move it within
+# its group. CI will eventually `namcap` this to catch typos.
+depends=(
+  # Kernel (CachyOS optimised, with headers for DKMS modules).
+  'linux-cachyos'
+  'linux-cachyos-headers'
+
+  # Shokunin identity (branding, trust store, repo mirrors, configs).
+  'shokunin-branding'
+  'shokunin-keyring'
+  'shokunin-mirrorlist'
+  'shokunin-quickshell-config'
+
+  # Desktop: single curated stack. Quickshell on Hyprland.
+  'hyprland'
+  'quickshell'
+
+  # Terminal + shell.
+  'kitty'
+  'fish'
+
+  # Developer essentials. The Omarchy precedent: ship the tools you
+  # know the audience will want on day one; resist the urge to ship
+  # everything.
+  'git'
+  'neovim'
+)
+
+# Empty package: no build, no installable files. `pacman -S shokunin-base`
+# expands into the dependency closure above.
+package() {
+  :
+}

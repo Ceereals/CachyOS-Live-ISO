@@ -1,0 +1,17 @@
+# /etc/os-release for the INSTALLED Shokunin system.
+#
+# Format: freedesktop.org os-release spec.
+# Keep the live env's `iso/profile/airootfs/etc/os-release` in lockstep
+# on ID, ID_LIKE, NAME so anything that detects "is this Shokunin?"
+# works in both environments.
+NAME="Shokunin"
+PRETTY_NAME="Shokunin"
+ID=shokunin
+ID_LIKE="cachyos arch"
+BUILD_ID=rolling
+ANSI_COLOR="38;2;0;0;0"
+HOME_URL="https://repo.ceereals.space"
+DOCUMENTATION_URL="https://repo.ceereals.space/docs"
+SUPPORT_URL="https://github.com/ceereals/cachyos-live-iso/issues"
+BUG_REPORT_URL="https://github.com/ceereals/cachyos-live-iso/issues"
+LOGO=shokunin
