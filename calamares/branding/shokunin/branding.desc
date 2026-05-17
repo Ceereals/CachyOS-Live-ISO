@@ -1,0 +1,51 @@
+# Calamares branding descriptor for Shokunin.
+#
+# Reference: https://github.com/calamares/calamares/blob/calamares/src/branding/README.md
+#
+# This file is consumed by Calamares to learn its product identity and
+# where to find the slideshow / images / colour palette. Path-like fields
+# are relative to /etc/calamares/branding/shokunin/ on the live ISO.
+
+componentName: shokunin
+
+# Welcome screen text. Calamares substitutes @SHORT_PRODUCT@ etc. inside
+# its own strings; the values here populate them.
+strings:
+    productName:         Shokunin
+    shortProductName:    Shokunin
+    version:             rolling
+    shortVersion:        rolling
+    versionedName:       Shokunin (rolling)
+    shortVersionedName:  Shokunin
+    bootloaderEntryName: Shokunin
+    productUrl:          https://repo.ceereals.space
+    supportUrl:          https://github.com/ceereals/cachyos-live-iso/issues
+    knownIssuesUrl:      https://github.com/ceereals/cachyos-live-iso/issues
+    releaseNotesUrl:     https://github.com/ceereals/cachyos-live-iso/releases
+
+# Image assets. Paths are relative to this directory. Files referenced
+# here are NOT yet committed — they live alongside the wallpaper /
+# logos to be produced. Calamares will error if any path doesn't exist
+# at runtime, so add the assets before the first real build.
+images:
+    productLogo:   logo.png
+    productIcon:   logo.png
+    productWelcome: welcome.png
+
+# Slideshow shown during the actual install phase. show.qml is a
+# Calamares QML page; can also be replaced with an image list. See
+# OPEN_QUESTIONS.md §7.
+slideshow: show.qml
+
+# Window behaviour.
+windowExpanding: normal
+windowSize:      900px,520px
+windowPlacement: center
+
+# Style overrides. Empty for now — defaults look fine until we have a
+# palette to apply.
+style:
+    sidebarBackground:    "#2C3338"
+    sidebarText:          "#FFFFFF"
+    sidebarTextSelect:    "#4D7FA8"
+    sidebarTextHighlight: "#4D7FA8"
