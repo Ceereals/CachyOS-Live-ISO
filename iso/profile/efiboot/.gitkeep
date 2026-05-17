@@ -1,0 +1,8 @@
+# UEFI bootloader assets. mkarchiso reads loader entries from here when
+# bootmodes contains `uefi.grub` or `uefi.systemd-boot`.
+#
+# Concretely we'll want:
+#   loader/loader.conf
+#   loader/entries/shokunin.conf
+# once we move past scaffolding. For now mkarchiso falls back to the
+# defaults shipped in /usr/share/archiso/configs/.

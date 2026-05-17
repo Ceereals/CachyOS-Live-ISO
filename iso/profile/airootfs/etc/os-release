@@ -1,0 +1,17 @@
+# /etc/os-release for the LIVE environment.
+#
+# Once the user runs the installer, `shokunin-branding` overwrites this
+# file on the target system with its own (shipped in
+# `packages/shokunin-branding/`). Keep these two in lockstep on the
+# fields a user might script against (ID, ID_LIKE, NAME).
+NAME="Shokunin Live"
+PRETTY_NAME="Shokunin Live ISO"
+ID=shokunin
+ID_LIKE="cachyos arch"
+BUILD_ID=rolling
+ANSI_COLOR="38;2;0;0;0"
+HOME_URL="https://repo.ceereals.space"
+DOCUMENTATION_URL="https://repo.ceereals.space/docs"
+SUPPORT_URL="https://github.com/ceereals/cachyos-live-iso/issues"
+BUG_REPORT_URL="https://github.com/ceereals/cachyos-live-iso/issues"
+LOGO=shokunin

@@ -1,0 +1,4 @@
+# /root/ on the live ISO. mkarchiso uses this for autologin scripts,
+# live MOTD, the auto-launch wrapper for Calamares, etc. Add files here
+# only if they need to run as root in the live env (e.g. a startup
+# script that opens Calamares once Quickshell is up).

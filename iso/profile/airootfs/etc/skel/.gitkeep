@@ -1,0 +1,4 @@
+# /etc/skel/ — template home for new users. mkarchiso copies this into
+# the live user's home and Calamares does the same for the installed
+# user. Curated dotfiles ship via `shokunin-quickshell-config`, which
+# drops files here at package install time.
