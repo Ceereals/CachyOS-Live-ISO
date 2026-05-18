@@ -10,9 +10,16 @@ settings (`settings.conf`).
 calamares/
 ├── branding/
 │   └── shokunin/
-│       ├── branding.desc   # name, slogan, paths, slideshow ref
-│       └── show.qml        # slideshow shown during install
-└── settings.conf           # module sequence + global settings
+│       ├── branding.desc       # name, slogan, paths, slideshow ref
+│       └── show.qml            # slideshow shown during install
+├── modules/                    # /etc/calamares/modules/*.conf overrides
+│   ├── bootloader.conf         # limine (ADR-0002)
+│   ├── locale.conf             # it_IT.UTF-8 + LC_MESSAGES=en_US (ADR-0019)
+│   ├── partition.conf          # Btrfs subvols + LUKS2 (ADR-0003/0004)
+│   ├── services-systemd.conf   # which services to enable at first boot
+│   ├── users.conf              # default groups, fish shell, password rules
+│   └── welcome.conf            # pre-flight checks (RAM/disk/internet)
+└── settings.conf               # module sequence + branding selection
 ```
 
 ## How this lands on the ISO
@@ -22,6 +29,7 @@ At ISO build time we (will) copy:
 | Source                              | Destination on the live ISO                      |
 | ----------------------------------- | ------------------------------------------------ |
 | `calamares/branding/shokunin/`      | `/etc/calamares/branding/shokunin/`              |
+| `calamares/modules/*.conf`          | `/etc/calamares/modules/*.conf`                  |
 | `calamares/settings.conf`           | `/etc/calamares/settings.conf`                   |
 
 The copy step is **not yet wired up** in `iso/build.sh`. Until we add it,
@@ -29,10 +37,10 @@ test by symlinking these into `/etc/calamares/` on a running live ISO.
 
 ## Status
 
-Scaffolding only. The slideshow QML is a placeholder, the settings file
-declares the standard module sequence but most modules are at defaults.
-Building this out is intentionally deferred — it's the largest piece of
-work and we want the ISO booting first.
+Settings + branding scaffolding plus six module configs (bootloader,
+locale, partition, services-systemd, users, welcome) aligned with the
+ADRs. Branding QML slideshow still placeholder. Real PNGs (logo,
+welcome) not yet committed — see `branding/shokunin/branding.desc`.
 
 See `OPEN_QUESTIONS.md` §7 for the slideshow format decision.
 
