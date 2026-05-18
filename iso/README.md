@@ -8,12 +8,13 @@ the CachyOS fork (`CachyOS/cachyos-iso`).
 
 ```
 iso/
-├── build.sh                # thin wrapper around mkarchiso
+├── build.sh                # thin wrapper around mkarchiso (also stages calamares/)
 └── profile/                # the archiso profile mkarchiso consumes
     ├── profiledef.sh       # ISO metadata (name, label, build modes)
     ├── packages.x86_64     # packages installed into the live env
     ├── pacman.conf         # pacman.conf used DURING ISO BUILD
-    ├── efiboot/            # UEFI bootloader assets (loader entries)
+    ├── grub/               # UEFI/BIOS grub.cfg — TODO: not yet populated
+    ├── syslinux/           # legacy BIOS syslinux config — TODO: not yet populated
     └── airootfs/           # files overlaid on the live root filesystem
         ├── etc/
         │   ├── os-release      # live env os-release (shokunin-branding overwrites on install)
@@ -21,7 +22,20 @@ iso/
         │   ├── pacman.d/
         │   └── skel/
         └── root/
+            └── customize_airootfs.sh   # liveuser + greetd autologin + Calamares autostart
 ```
+
+## How build.sh stages the profile
+
+`build.sh` does NOT run `mkarchiso` against `iso/profile/` directly.
+It first copies `iso/profile/` into a tempdir, then splices
+`../calamares/` (`settings.conf`, `branding/`, `modules/`) into the
+staged copy at `airootfs/etc/calamares/`. mkarchiso runs against the
+staged path. The tempdir is cleaned up on exit via `trap`.
+
+This keeps `iso/profile/` clean in git — Calamares config lives next
+door under `calamares/` (its own README and module index) without
+manual sync to two locations.
 
 ## The two pacman.conf trap
 
