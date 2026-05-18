@@ -23,14 +23,16 @@ strings:
     knownIssuesUrl:      https://github.com/ceereals/cachyos-live-iso/issues
     releaseNotesUrl:     https://github.com/ceereals/cachyos-live-iso/releases
 
-# Image assets. Paths are relative to this directory. Files referenced
-# here are NOT yet committed — they live alongside the wallpaper /
-# logos to be produced. Calamares will error if any path doesn't exist
-# at runtime, so add the assets before the first real build.
+# Image assets. Paths are relative to this directory.
+#
+# Commented out until real assets land — Calamares would otherwise error
+# at runtime trying to load missing files. With the lines absent, it
+# falls back to its built-in defaults. Drop logo.png / welcome.png in
+# this directory and uncomment to activate.
 images:
-    productLogo:   logo.png
-    productIcon:   logo.png
-    productWelcome: welcome.png
+    # productLogo:   logo.png
+    # productIcon:   logo.png
+    # productWelcome: welcome.png
 
 # Slideshow shown during the actual install phase. show.qml is a
 # Calamares QML page; can also be replaced with an image list. See
