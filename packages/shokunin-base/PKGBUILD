@@ -18,9 +18,9 @@
 # shellcheck disable=SC2034,SC2154
 
 pkgname=shokunin-base
-pkgver=0.3.0
+pkgver=0.4.0
 pkgrel=1
-pkgdesc="Shokunin meta-package + system tools (shokunin-update): kernel, branding, Hyprland+Quickshell stack, dev/AI tooling"
+pkgdesc="Shokunin meta-package + system defaults (shokunin-update, nftables, resolved, sysctl): kernel, branding, Hyprland+Quickshell stack, dev/AI tooling"
 arch=('any')
 url="https://repo.ceereals.space"
 license=('GPL-3.0-or-later')
@@ -156,14 +156,33 @@ depends=(
   'iwd'
 )
 
-# Single shipped file: /usr/bin/shokunin-update — the user-facing system
-# update wrapper. See OPEN_QUESTIONS.md §9. Apart from this script the
-# package is metadata-only; pacman -S shokunin-base expands into the
-# dependency closure above.
+# Shipped files (small surface — heavy lifting is dependencies):
+#   /usr/bin/shokunin-update                              — system update wrapper
+#   /etc/nftables.conf                                    — firewall (ADR-0014)
+#   /etc/systemd/resolved.conf.d/shokunin.conf            — DoT to Quad9 (ADR-0014)
+#   /etc/sysctl.d/99-shokunin.conf                        — kernel tunables
+#
+# All /etc files are marked backup= so user edits land as .pacnew on
+# upgrade rather than being clobbered.
 source=('shokunin-update')
 sha256sums=('SKIP')
 
+backup=(
+  'etc/nftables.conf'
+  'etc/systemd/resolved.conf.d/shokunin.conf'
+  'etc/sysctl.d/99-shokunin.conf'
+)
+
 package() {
+  # User-facing system update entry point.
   install -Dm755 "${srcdir}/shokunin-update" \
     "${pkgdir}/usr/bin/shokunin-update"
+
+  # System config files mirror the layout under system/etc/.
+  install -Dm644 "${startdir}/system/etc/nftables.conf" \
+    "${pkgdir}/etc/nftables.conf"
+  install -Dm644 "${startdir}/system/etc/systemd/resolved.conf.d/shokunin.conf" \
+    "${pkgdir}/etc/systemd/resolved.conf.d/shokunin.conf"
+  install -Dm644 "${startdir}/system/etc/sysctl.d/99-shokunin.conf" \
+    "${pkgdir}/etc/sysctl.d/99-shokunin.conf"
 }
