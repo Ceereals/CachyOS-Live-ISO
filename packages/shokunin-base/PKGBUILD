@@ -60,7 +60,7 @@ depends=(
   'shokunin-branding'
   'shokunin-keyring'
   'shokunin-mirrorlist'
-  'shokunin-quickshell-config'
+  'shokunin-shell-defaults'
 
   # ADR-0005 — Compositor: Hyprland + ecosystem utilities.
   'hyprland'

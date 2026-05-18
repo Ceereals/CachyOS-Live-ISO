@@ -1,0 +1,2 @@
+-- LazyVim auto-sources this for user keymap overrides.
+-- See https://www.lazyvim.org/configuration/keymaps.

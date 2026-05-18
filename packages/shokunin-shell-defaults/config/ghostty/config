@@ -1,0 +1,33 @@
+# Shokunin ghostty defaults.
+#
+# Edit anywhere — your changes win. Caelestia (ADR-0007) writes a matugen
+# theme alongside this; the theme directive below points there.
+
+# Font: JetBrainsMono Nerd Font ships with the rest of the shell stack
+# (pulled in by caelestia-meta). Falls back to system monospace.
+font-family = JetBrainsMono Nerd Font
+font-size = 13
+font-feature = -liga, -calt
+
+# Matugen-generated theme. Falls back to ghostty's built-in if the file
+# doesn't exist yet (first boot before caelestia has rendered anything).
+theme = catppuccin-mocha
+# When caelestia is running, this gets overwritten via:
+# config-file = ?~/.config/ghostty/themes/matugen.conf
+
+background-opacity = 0.94
+window-padding-x = 8
+window-padding-y = 8
+window-decoration = false
+
+# fish is the Shokunin default shell (ADR-0009).
+shell-integration = fish
+shell-integration-features = cursor,sudo,title
+
+# Sensible clipboard binds — match what the rest of the desktop uses.
+keybind = ctrl+shift+c=copy_to_clipboard
+keybind = ctrl+shift+v=paste_from_clipboard
+
+# Quit confirmation only with multiple surfaces — single-window quit is
+# instant.
+confirm-close-surface = false

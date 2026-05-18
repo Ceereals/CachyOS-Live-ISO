@@ -7,11 +7,11 @@ of truth here.
 
 ```
 packages/
-├── shokunin-base/              # meta-package: pulls in everything below
-├── shokunin-branding/          # wallpaper, plymouth, grub theme, os-release
-├── shokunin-keyring/           # repo signing key
-├── shokunin-quickshell-config/ # default Quickshell + Hyprland config
-└── shokunin-mirrorlist/        # /etc/pacman.d/shokunin-mirrorlist
+├── shokunin-base/             # meta-package: pulls in everything below
+├── shokunin-branding/         # wallpaper, plymouth, limine theme, os-release
+├── shokunin-keyring/          # repo signing key
+├── shokunin-shell-defaults/   # default skel: quickshell, hypr, ghostty, nvim
+└── shokunin-mirrorlist/       # /etc/pacman.d/shokunin-mirrorlist
 ```
 
 Each package is a directory with a `PKGBUILD` plus any source files

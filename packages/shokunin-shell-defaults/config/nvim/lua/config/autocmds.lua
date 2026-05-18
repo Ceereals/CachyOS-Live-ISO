@@ -1,0 +1,2 @@
+-- LazyVim auto-sources this for user autocmd overrides.
+-- See https://www.lazyvim.org/configuration/autocmds.

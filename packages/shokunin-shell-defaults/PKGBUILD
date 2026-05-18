@@ -1,7 +1,8 @@
 # Maintainer: Shokunin <https://repo.ceereals.space>
 #
-# shokunin-quickshell-config — default user configuration for the single
-# Shokunin desktop: Quickshell on top of Hyprland.
+# shokunin-shell-defaults — default user configuration for the Shokunin
+# desktop: Quickshell on Hyprland (ADR-0005/0006), ghostty (ADR-0009),
+# neovim with the LazyVim starter (ADR-0009).
 #
 # Two install strategies are common; we use SKEL.
 #
@@ -20,17 +21,24 @@
 
 # shellcheck disable=SC2034,SC2154
 
-pkgname=shokunin-quickshell-config
-pkgver=0.1.0
+pkgname=shokunin-shell-defaults
+pkgver=0.2.0
 pkgrel=1
-pkgdesc="Default Quickshell + Hyprland configuration for Shokunin"
+pkgdesc="Default Quickshell + Hyprland + ghostty + nvim/LazyVim configuration for Shokunin"
 arch=('any')
 url="https://repo.ceereals.space"
 license=('GPL-3.0-or-later')
 depends=(
   'hyprland'
   'quickshell'
+  'ghostty'
+  'neovim'
+  'git'           # LazyVim bootstrap clones lazy.nvim
 )
+# Old name (pre-0.2.0) — pacman swaps it on upgrade.
+replaces=('shokunin-quickshell-config')
+provides=('shokunin-quickshell-config')
+conflicts=('shokunin-quickshell-config')
 
 # `config/` is a directory in the package source. makepkg sees the
 # trailing slash and copies it recursively into $srcdir.
@@ -41,11 +49,13 @@ package() {
   # Install the canonical, untouched version under /usr/share/ so users
   # can diff against the upstream defaults.
   install -d "${pkgdir}/usr/share/shokunin"
-  cp -r "${srcdir}/config" "${pkgdir}/usr/share/shokunin/quickshell-config"
+  cp -r "${srcdir}/config" "${pkgdir}/usr/share/shokunin/shell-defaults"
 
   # Drop the same files into /etc/skel/.config/ so new users get them
-  # at account-creation time.
+  # at account-creation time. Each subdirectory of config/ maps to one
+  # ~/.config/<thing>/ tree.
   install -d "${pkgdir}/etc/skel/.config"
-  cp -r "${srcdir}/config/quickshell" "${pkgdir}/etc/skel/.config/quickshell"
-  cp -r "${srcdir}/config/hypr"       "${pkgdir}/etc/skel/.config/hypr"
+  for d in quickshell hypr ghostty nvim; do
+    cp -r "${srcdir}/config/${d}" "${pkgdir}/etc/skel/.config/${d}"
+  done
 }
