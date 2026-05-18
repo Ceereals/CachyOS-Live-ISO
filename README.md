@@ -39,6 +39,7 @@ repo and meta-packages. System upgrades keep flowing from CachyOS.
 
 | If you want to…                              | Go to                          |
 | -------------------------------------------- | ------------------------------ |
+| See *what* Shokunin ships and *why*          | `ADR.md`                       |
 | Understand the layering vs. CachyOS          | `docs/architecture.md`         |
 | Build the ISO locally                        | `iso/README.md`                |
 | Add or modify a package                      | `packages/README.md`           |
@@ -49,8 +50,12 @@ repo and meta-packages. System upgrades keep flowing from CachyOS.
 
 ## Status
 
-Early scaffolding. Most files are skeletons with TODOs. See
-`OPEN_QUESTIONS.md` for design decisions still on the table.
+Early scaffolding. Most files are skeletons with TODOs.
+
+- `ADR.md` — product/architecture decisions (what we ship, what we don't,
+  and why). Start here.
+- `OPEN_QUESTIONS.md` — residual implementation/process choices still on
+  the table (CI tooling, signing custody, repo layering, etc.).
 
 ## Repository layout note
 
