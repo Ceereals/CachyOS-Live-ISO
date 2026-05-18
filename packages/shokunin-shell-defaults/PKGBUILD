@@ -27,9 +27,9 @@
 # shellcheck disable=SC2034,SC2154
 
 pkgname=shokunin-shell-defaults
-pkgver=0.3.0
+pkgver=0.4.0
 pkgrel=1
-pkgdesc="Default Quickshell + Hyprland + ghostty + nvim/LazyVim + greetd configuration for Shokunin"
+pkgdesc="Default user shell environment for Shokunin (Hyprland + Quickshell + ghostty + nvim/LazyVim + fish/starship/tmux + greetd)"
 arch=('any')
 url="https://repo.ceereals.space"
 license=('GPL-3.0-or-later')
@@ -42,10 +42,18 @@ depends=(
   # Display manager (ADR-0008)
   'greetd'
   'greetd-tuigreet'
-  # User-facing apps
+  # User-facing apps (ADR-0009)
   'ghostty'
   'neovim'
-  'git'           # LazyVim bootstrap clones lazy.nvim
+  'fish'
+  'starship'
+  'tmux'
+  'git'           # LazyVim bootstrap clones lazy.nvim; required by /etc/skel git config too
+  # CLI helpers referenced by fish/starship/aliases (ADR-0010)
+  'eza'
+  'zoxide'
+  'git-delta'
+  'lazygit'
 )
 # Old name (pre-0.2.0) — pacman swaps it on upgrade.
 replaces=('shokunin-quickshell-config')
@@ -73,9 +81,12 @@ package() {
   # at account-creation time. Each subdirectory maps to one
   # ~/.config/<thing>/ tree.
   install -d "${pkgdir}/etc/skel/.config"
-  for d in quickshell hypr ghostty nvim; do
+  for d in quickshell hypr ghostty nvim fish tmux git; do
     cp -r "${startdir}/config/${d}" "${pkgdir}/etc/skel/.config/${d}"
   done
+  # starship reads ~/.config/starship.toml directly (no subdirectory).
+  install -Dm644 "${startdir}/config/starship.toml" \
+    "${pkgdir}/etc/skel/.config/starship.toml"
 
   # System-wide service configs go straight to /etc/<service>/. greetd
   # reads /etc/greetd/config.toml as its only config file.

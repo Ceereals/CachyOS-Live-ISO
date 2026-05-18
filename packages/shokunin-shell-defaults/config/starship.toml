@@ -1,0 +1,59 @@
+# Shokunin starship prompt (ADR-0009).
+#
+# Single-line, fast, readable. Shows: directory, git branch + status,
+# active language version (mise), cmd duration if > 2s, error code if
+# last command failed. Nothing on the right.
+#
+# Docs: https://starship.rs/config/
+
+format = """
+$directory\
+$git_branch\
+$git_status\
+$nodejs$python$rust$golang\
+$cmd_duration\
+$line_break\
+$character"""
+
+add_newline = true
+command_timeout = 700
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol   = "[❯](bold red)"
+vimcmd_symbol  = "[❮](bold green)"
+
+[directory]
+style = "bold cyan"
+truncation_length = 4
+truncation_symbol = "…/"
+truncate_to_repo = false
+
+[git_branch]
+symbol = " "
+style  = "bold purple"
+format = "[on](dimmed white) [$symbol$branch]($style) "
+
+[git_status]
+style = "yellow"
+format = "([\\[$all_status$ahead_behind\\]]($style) )"
+
+[cmd_duration]
+min_time = 2000
+format   = "[took $duration](bold yellow) "
+
+[nodejs]
+symbol = " "
+format = "[$symbol($version )]($style)"
+
+[python]
+symbol = " "
+format = "[$symbol(${version} )]($style)"
+
+[rust]
+symbol = " "
+format = "[$symbol($version )]($style)"
+
+[golang]
+symbol = " "
+format = "[$symbol($version )]($style)"
