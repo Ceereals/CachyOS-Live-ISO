@@ -1,0 +1,188 @@
+# Maintainer: Shokunin <https://repo.ceereals.space>
+#
+# shokunin-base — meta-package. The single source of truth for "what's
+# on every Shokunin install". Adding/removing a `depends=()` entry here
+# is how we curate the system. The package itself ships no files.
+#
+# Source of truth for each group: ../../ADR.md.
+#
+# CI marker: built with --nodeps because the dependency closure spans
+# CachyOS, AUR rebuilds, and our own [shokunin] repo. None of those are
+# resolvable inside a vanilla Arch container at build time; resolution
+# happens at install time on a real Shokunin system.
+# shokunin-build: nodeps
+
+# PKGBUILDs are sourced by makepkg, not executed. shellcheck doesn't
+# know that, so it complains about every metadata var (pkgname, etc.)
+# being unused and about $srcdir/$pkgdir being unassigned. Disable both.
+# shellcheck disable=SC2034,SC2154
+
+pkgname=shokunin-base
+pkgver=0.4.0
+pkgrel=1
+pkgdesc="Shokunin meta-package + system defaults (shokunin-update, nftables, resolved, sysctl): kernel, branding, Hyprland+Quickshell stack, dev/AI tooling"
+arch=('any')
+url="https://repo.ceereals.space"
+license=('GPL-3.0-or-later')
+groups=('shokunin')
+
+# --- depends ---
+#
+# Grouped by ADR. If a package's source isn't an official Arch/CachyOS
+# repo, an inline comment marks the rebuild origin (typically AUR,
+# rebuilt into [shokunin] by CI). Keep groups; if a line moves, move it
+# within its group. CI lints this list with `namcap`.
+depends=(
+  # ADR-0001 — Base upstream: CachyOS optimised kernel + headers.
+  # ADR-0018 — Full firmware blob set for WiFi/Bluetooth out of the box.
+  'linux-cachyos'
+  'linux-cachyos-headers'
+  'linux-firmware'
+
+  # ADR-0002 — Bootloader: limine + snapper integration.
+  # ADR-0003 — Btrfs with snapper, automatic pre/post pacman snapshots.
+  'limine'
+  'limine-snapper-sync'           # rebuild: AUR → [shokunin]
+  'btrfs-progs'
+  'snapper'
+  'snap-pac'
+
+  # ADR-0004 — LUKS2 + TPM2 + Secure Boot tooling.
+  'cryptsetup'
+  'sbctl'
+  'tpm2-tools'
+
+  # ADR-0014 — Security stack: AppArmor, nftables, opt-in opensnitch/usbguard,
+  # Flatpak + portal, encrypted DNS via systemd-resolved.
+  'apparmor'
+  'nftables'
+  'opensnitch'                    # rebuild: AUR → [shokunin]
+  'usbguard'
+  'flatpak'
+  'xdg-desktop-portal'
+  'xdg-desktop-portal-gtk'
+
+  # Shokunin identity layer (branding, trust store, mirrors, default configs).
+  'shokunin-branding'
+  'shokunin-keyring'
+  'shokunin-mirrorlist'
+  'shokunin-shell-defaults'
+
+  # ADR-0005 — Compositor: Hyprland + ecosystem utilities.
+  'hyprland'
+  'hypridle'
+  'hyprlock'
+  'hyprpicker'
+  'hyprsunset'
+  'xdg-desktop-portal-hyprland'
+
+  # ADR-0006 — Shell desktop: Quickshell + caelestia (layered, not forked).
+  # ADR-0007 — Dynamic theming via matugen ships inside caelestia-meta.
+  'quickshell'
+  'caelestia-meta'                # rebuild: AUR → [shokunin]
+  'fuzzel'
+  'swww'                          # rebuild: AUR → [shokunin]
+  'grimblast'                     # rebuild: AUR (hyprland-contrib) → [shokunin]
+  'satty'                         # rebuild: AUR → [shokunin]
+  'cliphist'
+  'wl-clipboard'
+
+  # ADR-0008 — Display manager: greetd + tuigreet (TUI, lightweight).
+  'greetd'
+  'greetd-tuigreet'               # rebuild: AUR → [shokunin]
+
+  # ADR-0009 — Terminal, shell, editor, multiplexer.
+  'ghostty'
+  'fish'
+  'starship'
+  'neovim'
+  'tmux'
+
+  # ADR-0010 — Curated modern CLI tools (objectively-better-than-classic only).
+  'ripgrep'
+  'fd'
+  'bat'
+  'eza'
+  'zoxide'
+  'git-delta'
+  'btop'
+  'lazygit'
+  'yazi'
+  'tealdeer'
+
+  # Common essentials (assumed by every other tool listed here).
+  'git'
+  'sudo'
+  'man-db'
+  'man-pages'
+  'bash-completion'
+  'pacman-contrib'
+
+  # ADR-0011 — Browser default: Firefox vanilla.
+  'firefox'
+
+  # ADR-0012 — Dev env: mise for language versions, podman+distrobox for
+  # isolated environments. Lazydocker for the container TUI. Docker NOT
+  # installed by default.
+  'mise'                          # rebuild: AUR → [shokunin]
+  'podman'
+  'distrobox'
+  'lazydocker'                    # rebuild: AUR → [shokunin]
+
+  # ADR-0013 — AI tooling as first-class. CLI + chat. Editor plugins are
+  # configured by shokunin-shell-defaults, not packaged separately.
+  'claude-code'                   # rebuild: AUR → [shokunin]
+  'aichat'                        # rebuild: AUR → [shokunin]
+
+  # ADR-0015 — AUR helper for end users.
+  'paru'                          # rebuild: AUR → [shokunin]
+
+  # ADR-0016 — Backup: kopia (encrypted, S3-compatible-friendly).
+  'kopia-bin'                     # rebuild: AUR → [shokunin]
+
+  # ADR-0018 — Hardware target: desktop + laptop x86_64, AMD/Intel GPU.
+  # Power management, audio stack, networking, Bluetooth.
+  'power-profiles-daemon'
+  'brightnessctl'
+  'playerctl'
+  'pipewire'
+  'pipewire-pulse'
+  'pipewire-jack'
+  'pipewire-alsa'
+  'wireplumber'
+  'bluez'
+  'bluez-utils'
+  'networkmanager'
+  'iwd'
+)
+
+# Shipped files (small surface — heavy lifting is dependencies):
+#   /usr/bin/shokunin-update                              — system update wrapper
+#   /etc/nftables.conf                                    — firewall (ADR-0014)
+#   /etc/systemd/resolved.conf.d/shokunin.conf            — DoT to Quad9 (ADR-0014)
+#   /etc/sysctl.d/99-shokunin.conf                        — kernel tunables
+#
+# All /etc files are marked backup= so user edits land as .pacnew on
+# upgrade rather than being clobbered.
+source=('shokunin-update')
+sha256sums=('SKIP')
+
+backup=(
+  'etc/nftables.conf'
+  'etc/systemd/resolved.conf.d/shokunin.conf'
+  'etc/sysctl.d/99-shokunin.conf'
+)
+
+package() {
+  # User-facing system update entry point.
+  install -Dm755 "${srcdir}/shokunin-update" \
+    "${pkgdir}/usr/bin/shokunin-update"
+
+  # System config files mirror the layout under system/etc/.
+  install -Dm644 "${startdir}/system/etc/nftables.conf" \
+    "${pkgdir}/etc/nftables.conf"
+  install -Dm644 "${startdir}/system/etc/systemd/resolved.conf.d/shokunin.conf" \
+    "${pkgdir}/etc/systemd/resolved.conf.d/shokunin.conf"
+  install -Dm644 "${startdir}/system/etc/sysctl.d/99-shokunin.conf" \
+    "${pkgdir}/etc/sysctl.d/99-shokunin.conf"
+}

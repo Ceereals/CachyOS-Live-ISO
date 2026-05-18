@@ -1,0 +1,82 @@
+# packages.x86_64 — packages installed into the live ISO environment.
+#
+# These are the packages that exist on the running live system used to
+# boot the installer. Anything the *installed* system needs comes through
+# `shokunin-base` (a meta-package). Keep this file short: live env =
+# enough to run Calamares + a bootable terminal + Quickshell.
+#
+# Lines beginning with `#` are comments. Order does not matter. Group
+# logically with comments for grep-ability.
+
+# --- Base system + archiso plumbing -------------------------------------
+base
+base-devel
+linux-cachyos
+linux-cachyos-headers
+linux-firmware
+mkinitcpio
+mkinitcpio-archiso
+mkinitcpio-nfs-utils
+syslinux
+
+# --- Filesystems / disk tooling (installer needs these) -----------------
+btrfs-progs
+dosfstools
+e2fsprogs
+exfatprogs
+f2fs-tools
+xfsprogs
+gptfdisk
+parted
+
+# --- Networking in the live env -----------------------------------------
+networkmanager
+iwd
+openssh
+curl
+wget
+rsync
+
+# --- Bootloader assets --------------------------------------------------
+grub
+efibootmgr
+edk2-shell
+
+# --- Live env shell + helpers -------------------------------------------
+fish
+git
+neovim
+htop
+less
+man-db
+man-pages
+
+# --- Display server + Quickshell session (single DE) --------------------
+# Hyprland is the underlying compositor; Quickshell is the shell on top.
+hyprland
+quickshell
+xdg-desktop-portal-hyprland
+qt6-wayland
+qt6-declarative
+wl-clipboard
+pipewire
+pipewire-pulse
+pipewire-alsa
+wireplumber
+polkit
+greetd
+greetd-tuigreet
+
+# --- Calamares installer ------------------------------------------------
+calamares
+qt6-svg
+
+# --- Shokunin meta + branding (drops the rest) --------------------------
+# `shokunin-base` is a meta-package whose `depends` pull in the rest of
+# the curated stack. By the time the installer copies the live rootfs
+# (or chroots and re-installs), the same set is on the installed system.
+shokunin-base
+shokunin-branding
+shokunin-keyring
+shokunin-mirrorlist
+shokunin-shell-defaults

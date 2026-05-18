@@ -1,0 +1,72 @@
+# Shokunin git defaults (ADR-0010).
+#
+# XDG-style — git reads $XDG_CONFIG_HOME/git/config (i.e. this file)
+# before $HOME/.gitconfig. Edit either; this skel drop is yours after
+# install. user.name / user.email are intentionally left empty so the
+# first `git commit` reminds new users to set them.
+
+[user]
+    name  =
+    email =
+
+[init]
+    defaultBranch = main
+
+[pull]
+    rebase = true
+
+[push]
+    autoSetupRemote = true
+    default        = simple
+    followTags     = true
+
+[fetch]
+    prune     = true
+    pruneTags = true
+
+[rebase]
+    autoStash = true
+    updateRefs = true
+
+[merge]
+    conflictStyle = zdiff3
+
+[diff]
+    algorithm     = histogram
+    colorMoved    = default
+    renames       = copies
+
+[column]
+    ui = auto
+
+[branch]
+    sort = -committerdate
+
+[help]
+    autocorrect = prompt
+
+# Use delta (ADR-0010) as pager for diff / log / show / blame.
+[core]
+    pager = delta
+
+[interactive]
+    diffFilter = delta --color-only
+
+[delta]
+    navigate     = true
+    line-numbers = true
+    side-by-side = true
+    syntax-theme = ansi
+
+[pager]
+    branch = false
+
+[alias]
+    # The few aliases worth shipping by default — anything fancier
+    # belongs in your personal config.
+    s    = status -sb
+    l    = log --oneline --decorate --graph -20
+    last = log -1 HEAD --stat
+    co   = checkout
+    sw   = switch
+    rs   = restore

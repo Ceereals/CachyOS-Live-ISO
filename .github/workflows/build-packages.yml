@@ -1,0 +1,213 @@
+name: build-packages
+
+# Build, sign, and publish every package whose directory changed in the
+# push that triggered this run.
+#
+# Required secrets:
+#   SHOKUNIN_GPG_PRIVATE_KEY  ASCII-armored signing private key (or subkey)
+#   SHOKUNIN_GPG_PASSPHRASE   passphrase for the key above
+#   SHOKUNIN_GPG_KEY_ID       long key ID / fingerprint of the signing key
+#   SHOKUNIN_DEPLOY_SSH_KEY   SSH private key for the repo host
+#   SHOKUNIN_DEPLOY_HOST      e.g. repo.ceereals.space
+#   SHOKUNIN_DEPLOY_USER      e.g. shokunin-publish
+#   SHOKUNIN_DEPLOY_KNOWN_HOSTS  pinned SSH host keys for SHOKUNIN_DEPLOY_HOST
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/**'
+  pull_request:
+    paths:
+      - 'packages/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # We use OIDC for any future cloud auth (e.g. signing key in HashiCorp
+  # Vault). Currently signing key is a plain secret; leave the
+  # `id-token: write` claim here so we can switch without rewriting.
+  id-token: write
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.detect.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # we diff against the previous commit
+
+      - id: detect
+        name: Detect changed package directories
+        run: |
+          set -e
+          # On a push, diff HEAD^ HEAD. On PR, diff against the base SHA.
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          else
+            base="$(git rev-parse HEAD^ 2>/dev/null || git rev-parse HEAD)"
+          fi
+          # Two-stage filter:
+          #   1. awk: keep paths with at least 3 segments (packages/<pkg>/<file>),
+          #      which already drops packages/README.md and other root-level files.
+          #   2. Drop entries where packages/<pkg>/PKGBUILD doesn't exist —
+          #      defends against future root files (LICENSE, .gitkeep) and
+          #      against a package directory being removed in the same diff.
+          candidates=$(git diff --name-only "${base}" HEAD -- 'packages/' \
+            | awk -F/ 'NF >= 3 { print $2 }' | sort -u)
+          changed=()
+          while IFS= read -r p; do
+            [[ -z "${p}" ]] && continue
+            if [[ -f "packages/${p}/PKGBUILD" ]]; then
+              changed+=("${p}")
+            else
+              echo "skipping '${p}': no packages/${p}/PKGBUILD"
+            fi
+          done <<< "${candidates}"
+          if [[ ${#changed[@]} -eq 0 ]]; then
+            echo "packages=[]" >> "${GITHUB_OUTPUT}"
+            echo "no packages changed"
+            exit 0
+          fi
+          # Emit a JSON array for the matrix.
+          json=$(printf '%s\n' "${changed[@]}" | jq -R . | jq -sc .)
+          echo "packages=${json}" >> "${GITHUB_OUTPUT}"
+          echo "changed packages: ${changed[*]}"
+
+  build:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.packages != '[]'
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+      # `makepkg` refuses to run as root. We create a build user inside
+      # the container instead of using GHA's runner user (which doesn't
+      # exist in the Arch image).
+      options: --user 0:0
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJSON(needs.detect-changes.outputs.packages) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          pacman -Sy --noconfirm --needed \
+            base-devel git sudo namcap pacman-contrib
+
+      - name: Create unprivileged build user
+        run: |
+          useradd -m -G wheel builder
+          echo "builder ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/builder
+          # makepkg builds in the user's home; mark the workspace safe.
+          chown -R builder:builder .
+          git config --global --add safe.directory '*'
+
+      - name: makepkg + namcap
+        env:
+          PKG: ${{ matrix.package }}
+        run: |
+          cd "packages/${PKG}"
+          # Meta-packages (depends-only, empty package() body) cannot be
+          # built with --syncdeps because their deps include things that
+          # only exist in the CachyOS repo, AUR, or our own [shokunin]
+          # repo — none of which the vanilla Arch container can resolve.
+          # Opt in by writing `# shokunin-build: nodeps` near the top
+          # of the PKGBUILD.
+          if grep -q '^# shokunin-build: nodeps' PKGBUILD; then
+            flags=(--nodeps)
+            echo "::notice::PKGBUILD marked nodeps; skipping dep resolution"
+          else
+            flags=(--syncdeps)
+          fi
+          sudo -u builder makepkg "${flags[@]}" --noconfirm --noprogressbar
+          # namcap on PKGBUILD + produced package.
+          namcap PKGBUILD || true
+          for f in *.pkg.tar.zst; do
+            namcap "${f}" || true
+          done
+
+      - name: Skip sign + publish on PRs
+        if: github.event_name == 'pull_request'
+        run: echo "Pull request build — skipping signing and publish."
+
+      - name: Import signing key
+        if: github.event_name != 'pull_request'
+        env:
+          GPG_KEY: ${{ secrets.SHOKUNIN_GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.SHOKUNIN_GPG_PASSPHRASE }}
+        run: |
+          mkdir -p ~/.gnupg && chmod 700 ~/.gnupg
+          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          echo "pinentry-mode loopback"  >> ~/.gnupg/gpg.conf
+          echo "${GPG_KEY}" | gpg --batch --import
+          # Stash passphrase for the signer script.
+          echo "GPG_PASSPHRASE=${GPG_PASSPHRASE}" >> "${GITHUB_ENV}"
+
+      - name: Sign produced package(s)
+        if: github.event_name != 'pull_request'
+        env:
+          PKG: ${{ matrix.package }}
+          GPG_KEY_ID: ${{ secrets.SHOKUNIN_GPG_KEY_ID }}
+        run: |
+          cd "packages/${PKG}"
+          for f in *.pkg.tar.zst; do
+            gpg --batch --yes --pinentry-mode loopback \
+                --passphrase "${GPG_PASSPHRASE}" \
+                --detach-sign --no-armor \
+                --local-user "${GPG_KEY_ID}" \
+                --output "${f}.sig" "${f}"
+          done
+
+      - name: Upload signed artifacts
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkg-${{ matrix.package }}
+          path: |
+            packages/${{ matrix.package }}/*.pkg.tar.zst
+            packages/${{ matrix.package }}/*.pkg.tar.zst.sig
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+          merge-multiple: true
+
+      - name: Configure SSH
+        env:
+          KEY: ${{ secrets.SHOKUNIN_DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SHOKUNIN_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          echo "${KEY}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "${KNOWN_HOSTS}" > ~/.ssh/known_hosts
+
+      - name: scp + add-package on host
+        env:
+          HOST: ${{ secrets.SHOKUNIN_DEPLOY_HOST }}
+          USER: ${{ secrets.SHOKUNIN_DEPLOY_USER }}
+        run: |
+          set -e
+          # Stage everything in /tmp/<run-id>/ on the host so a partial
+          # transfer can't leak half-uploaded files into the repo.
+          stage="/tmp/shokunin-${{ github.run_id }}"
+          ssh "${USER}@${HOST}" "mkdir -p '${stage}'"
+          scp ./artifacts/*.pkg.tar.zst* "${USER}@${HOST}:${stage}/"
+          # add-package.sh is restricted on the host via authorized_keys
+          # `command=`. The wrapper iterates the stage directory.
+          ssh "${USER}@${HOST}" "for f in ${stage}/*.pkg.tar.zst; do \
+              sudo /opt/shokunin-repo/scripts/add-package.sh \
+                  \"\${f}\" \"\${f}.sig\"; \
+            done; \
+            rm -rf '${stage}'"

@@ -1,0 +1,87 @@
+name: lint
+
+# Cheap, runs on every PR. Catches the dumb stuff before the expensive
+# package / ISO builds are triggered.
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    name: shellcheck
+    steps:
+      - uses: actions/checkout@v4
+
+      # Scan every executable bash script + every .sh / .bash file.
+      # Excludes the inherited cachyos-iso fork content: archiso/,
+      # machines/, testcases/, plus the root-level util-*.sh / buildiso.sh
+      # / testiso.sh / lddd.sh scripts. README.md §"Repository layout note"
+      # says they'll go away once iso/build.sh reaches parity; until then
+      # we don't lint upstream code we haven't touched.
+      - name: Run shellcheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          severity: warning
+          ignore_paths: >-
+            archiso
+            machines
+            testcases
+          ignore_names: >-
+            buildiso.sh
+            testiso.sh
+            lddd.sh
+            util.sh
+            util-iso.sh
+            util-iso-mount.sh
+            util-msg.sh
+
+  pkgbuild-namcap:
+    runs-on: ubuntu-latest
+    name: namcap PKGBUILDs
+    # namcap lives in Arch. Easiest path: run inside an Arch container.
+    container:
+      image: archlinux:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install namcap
+        run: pacman -Sy --noconfirm namcap
+
+      - name: namcap all PKGBUILDs
+        # namcap returns non-zero on any warning; we tolerate warnings,
+        # only fail on outright errors. Filter accordingly.
+        run: |
+          set -e
+          fail=0
+          for f in packages/*/PKGBUILD; do
+            echo "=== ${f} ==="
+            if ! namcap "${f}"; then
+              fail=1
+            fi
+          done
+          exit "${fail}"
+
+  pacman-conf-consistency:
+    runs-on: ubuntu-latest
+    name: pacman.conf order matches
+    steps:
+      - uses: actions/checkout@v4
+
+      # Ensure the two pacman.conf files declare repos in the same order.
+      # See docs/pacman-conf-reference.md for the rationale.
+      - name: Diff [section] order
+        run: |
+          a=$(grep -E '^\[' iso/profile/pacman.conf)
+          b=$(grep -E '^\[' iso/profile/airootfs/etc/pacman.conf)
+          if [[ "${a}" != "${b}" ]]; then
+            echo "::error::pacman.conf section order differs between build-time and installed-system copies"
+            diff <(echo "${a}") <(echo "${b}") || true
+            exit 1
+          fi
+          echo "OK: section order matches"

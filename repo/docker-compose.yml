@@ -1,0 +1,59 @@
+# docker-compose.yml — Shokunin pacman repo nginx service.
+#
+# Drops one container behind the existing Traefik on the Swiss server.
+# Traefik handles TLS via the existing Cloudflare DNS-01 resolver.
+#
+# Pre-requisites on the host:
+#   - Traefik is running with `web-secure` entrypoint and `cloudflare`
+#     certresolver.
+#   - The external Docker network `traefik_proxy` exists.
+#   - /srv/shokunin-repo/ exists and is writable by the user running
+#     add-package.sh.
+#
+# Deploy:
+#   docker compose up -d
+
+services:
+  shokunin-repo:
+    image: nginx:1.27-alpine
+    container_name: shokunin-repo
+    restart: unless-stopped
+
+    # Read-only filesystem hardens against any RCE in the served files
+    # (highly unlikely from static .pkg.tar.zst, but cheap to enable).
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+
+    volumes:
+      # nginx config (read-only).
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      # The actual repo contents. add-package.sh writes here from the
+      # host side (NOT from inside the container).
+      - /srv/shokunin-repo:/srv/shokunin-repo:ro
+
+    networks:
+      - traefik_proxy
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+
+      # HTTP router: redirect to HTTPS.
+      - "traefik.http.routers.shokunin-repo-http.rule=Host(`repo.ceereals.space`)"
+      - "traefik.http.routers.shokunin-repo-http.entrypoints=web"
+      - "traefik.http.routers.shokunin-repo-http.middlewares=https-redirect@file"
+
+      # HTTPS router: terminate TLS via Cloudflare resolver.
+      - "traefik.http.routers.shokunin-repo.rule=Host(`repo.ceereals.space`)"
+      - "traefik.http.routers.shokunin-repo.entrypoints=websecure"
+      - "traefik.http.routers.shokunin-repo.tls=true"
+      - "traefik.http.routers.shokunin-repo.tls.certresolver=cloudflare"
+
+      # Service port (nginx listens on 80 inside the container).
+      - "traefik.http.services.shokunin-repo.loadbalancer.server.port=80"
+
+networks:
+  traefik_proxy:
+    external: true

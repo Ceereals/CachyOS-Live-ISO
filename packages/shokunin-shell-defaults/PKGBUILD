@@ -1,0 +1,95 @@
+# Maintainer: Shokunin <https://repo.ceereals.space>
+#
+# shokunin-shell-defaults — default configuration for the Shokunin
+# desktop shell: Quickshell on Hyprland (ADR-0005/0006), ghostty
+# (ADR-0009), neovim with the LazyVim starter (ADR-0009), and the
+# greetd display manager service (ADR-0008).
+#
+# Two install strategies are common for user config; we use SKEL.
+#
+#   (a) Skel: drop files under /etc/skel/.config/. New users (and the
+#       Calamares-created account) get a personal copy at account
+#       creation. Upgrades to this package do NOT overwrite the user's
+#       config. The canonical source also ships under /usr/share/...
+#       so users can diff and merge.
+#
+#   (b) Source-from-share: ship configs under /usr/share/ and have the
+#       user's `~/.config/.../*.conf` `source` them. Upgrades land
+#       instantly, but the user can't easily diverge.
+#
+# (a) is friendlier and matches what most distros do. See
+# `OPEN_QUESTIONS.md` §2.
+#
+# System-wide service configs (greetd) live under system/ in the source
+# tree and install to /etc/<service>/. They are flagged `backup=` so
+# user edits are preserved as .pacnew on upgrade.
+
+# shellcheck disable=SC2034,SC2154
+
+pkgname=shokunin-shell-defaults
+pkgver=0.4.0
+pkgrel=1
+pkgdesc="Default user shell environment for Shokunin (Hyprland + Quickshell + ghostty + nvim/LazyVim + fish/starship/tmux + greetd)"
+arch=('any')
+url="https://repo.ceereals.space"
+license=('GPL-3.0-or-later')
+depends=(
+  # Shell layer
+  'hyprland'
+  'hypridle'
+  'hyprlock'
+  'quickshell'
+  # Display manager (ADR-0008)
+  'greetd'
+  'greetd-tuigreet'
+  # User-facing apps (ADR-0009)
+  'ghostty'
+  'neovim'
+  'fish'
+  'starship'
+  'tmux'
+  'git'           # LazyVim bootstrap clones lazy.nvim; required by /etc/skel git config too
+  # CLI helpers referenced by fish/starship/aliases (ADR-0010)
+  'eza'
+  'zoxide'
+  'git-delta'
+  'lazygit'
+)
+# Old name (pre-0.2.0) — pacman swaps it on upgrade.
+replaces=('shokunin-quickshell-config')
+provides=('shokunin-quickshell-config')
+conflicts=('shokunin-quickshell-config')
+
+# /etc files the user may edit are tracked so changes survive upgrades.
+backup=(
+  'etc/greetd/config.toml'
+)
+
+# No source=(). makepkg's source array doesn't accept directory entries
+# (the `'config/'` trailing-slash trick is undefined behaviour and fails
+# in CI); we reference the config tree directly via $startdir below.
+source=()
+sha256sums=()
+
+package() {
+  # Install the canonical, untouched user-skel tree under /usr/share/
+  # so users can diff against the upstream defaults.
+  install -d "${pkgdir}/usr/share/shokunin"
+  cp -r "${startdir}/config" "${pkgdir}/usr/share/shokunin/shell-defaults"
+
+  # Drop the user-skel tree into /etc/skel/.config/ so new users get it
+  # at account-creation time. Each subdirectory maps to one
+  # ~/.config/<thing>/ tree.
+  install -d "${pkgdir}/etc/skel/.config"
+  for d in quickshell hypr ghostty nvim fish tmux git; do
+    cp -r "${startdir}/config/${d}" "${pkgdir}/etc/skel/.config/${d}"
+  done
+  # starship reads ~/.config/starship.toml directly (no subdirectory).
+  install -Dm644 "${startdir}/config/starship.toml" \
+    "${pkgdir}/etc/skel/.config/starship.toml"
+
+  # System-wide service configs go straight to /etc/<service>/. greetd
+  # reads /etc/greetd/config.toml as its only config file.
+  install -Dm644 "${startdir}/system/greetd/config.toml" \
+    "${pkgdir}/etc/greetd/config.toml"
+}

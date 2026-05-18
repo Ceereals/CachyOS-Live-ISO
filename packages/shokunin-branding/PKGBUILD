@@ -1,0 +1,63 @@
+# Maintainer: Shokunin <https://repo.ceereals.space>
+#
+# shokunin-branding — visual identity assets for Shokunin.
+#
+# Ships:
+#   /etc/os-release                                  (overwrites the upstream one)
+#   /usr/share/backgrounds/shokunin/wallpaper.png    (default wallpaper)
+#   /usr/share/plymouth/themes/shokunin/             (boot splash theme)
+#   /usr/share/limine/themes/shokunin/               (limine boot menu branding, ADR-0002)
+#
+# Real assets are NOT in the repo at scaffolding time. See the README
+# next to each subdirectory for what to drop in.
+
+# shellcheck disable=SC2034,SC2154
+# (makepkg contract: pkgname/pkgver/... are consumed by makepkg; srcdir
+# and pkgdir are injected at build time.)
+
+pkgname=shokunin-branding
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Shokunin branding: wallpaper, plymouth theme, limine boot branding, /etc/os-release"
+arch=('any')
+url="https://repo.ceereals.space"
+license=('CC-BY-SA-4.0')
+
+# We overwrite /etc/os-release so the user can `cat /etc/os-release`
+# and see Shokunin. `filesystem` owns the canonical one; declare the
+# conflict so pacman knows to back theirs up to .pacsave on install.
+conflicts=()
+provides=()
+# `install -Dm644 ... /etc/os-release` would normally collide with the
+# `filesystem` package on a fresh system. We use `backup=` so user
+# modifications are preserved across upgrades.
+backup=('etc/os-release')
+
+# Only bare files go in source=(); directory trees are referenced
+# directly via $startdir in package() because makepkg's source array
+# does not support directory entries (the trailing-slash hack is
+# undefined behaviour and fails in CI).
+source=(
+  'os-release'
+  'wallpaper.png'      # placeholder; see README in this directory
+)
+sha256sums=('SKIP' 'SKIP')
+
+package() {
+  # /etc/os-release — Shokunin identity for scripts and detection.
+  install -Dm644 "${srcdir}/os-release" "${pkgdir}/etc/os-release"
+
+  # Wallpaper — referenced from the default Quickshell config.
+  install -Dm644 "${srcdir}/wallpaper.png" \
+    "${pkgdir}/usr/share/backgrounds/shokunin/wallpaper.png"
+
+  # Plymouth theme — boot splash. plymouth-set-default-theme(1) is run
+  # by the user (or a Calamares hook) post-install.
+  install -d "${pkgdir}/usr/share/plymouth/themes/shokunin"
+  cp -r "${startdir}/plymouth/." "${pkgdir}/usr/share/plymouth/themes/shokunin/"
+
+  # Limine branding — wallpaper + a `limine.conf` snippet `include`d
+  # from /boot/limine.conf by a Calamares post-install hook (TODO).
+  install -d "${pkgdir}/usr/share/limine/themes/shokunin"
+  cp -r "${startdir}/limine/." "${pkgdir}/usr/share/limine/themes/shokunin/"
+}

@@ -20,3 +20,22 @@ archiso/airootfs/etc/environment
 archiso/airootfs/etc/pacman.d/cachyos-mirrorlist
 archiso/airootfs/etc/edition-tag
 archiso/airootfs/etc/version-tag
+
+# --- Shokunin --------------------------------------------------------------
+
+# makepkg outputs (per-package directories)
+packages/*/pkg/
+packages/*/src/
+packages/*/*.pkg.tar.zst
+packages/*/*.pkg.tar.zst.sig
+packages/*/*.log
+
+# Anything that looks like a private key — defence in depth, in case
+# someone runs `gpg --export-secret-keys` in-tree by accident.
+*-priv.*
+*.asc.gpg
+secrets/
+
+# Local env files (we use .env.example as the source of truth)
+.env
+.env.local

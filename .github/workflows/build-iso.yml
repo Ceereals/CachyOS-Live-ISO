@@ -1,0 +1,133 @@
+name: build-iso
+
+# Build the Shokunin ISO. Triggers:
+#   - tag push (v* or YYYY.MM.DD*)  → uploaded to a GitHub Release
+#   - weekly schedule (Mon 04:00 UTC) → canary build, kept as artifact
+#   - manual dispatch                → ad-hoc
+#
+# Required secrets:
+#   GITHUB_TOKEN                         (provided)
+#   SHOKUNIN_GPG_PRIVATE_KEY             see build-packages.yml
+#   SHOKUNIN_GPG_PASSPHRASE
+#   SHOKUNIN_GPG_KEY_ID
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - '20[0-9][0-9].[0-1][0-9].[0-3][0-9]*'
+      - 'weekly-*'
+  schedule:
+    # Mondays 04:00 UTC. Adjust if it conflicts with CachyOS upstream
+    # rebuilds (they typically don't overlap, but worth re-checking).
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed to create a GitHub Release on tag
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+      # archiso needs to mount, loop, chroot. The GitHub Actions runner
+      # supports running privileged containers via this option; in
+      # practice we may need a self-hosted runner for full mkarchiso
+      # support. Documented as a known limitation.
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install archiso + tooling
+        run: |
+          pacman -Sy --noconfirm --needed \
+            archiso mkinitcpio-archiso squashfs-tools grub \
+            git sudo
+
+      - name: Add the shokunin repo to the build host
+        # mkarchiso pulls our packages.x86_64 from configured repos.
+        # Append [shokunin] so it can resolve shokunin-base etc.
+        # Trust-on-first-use is fine for the build host; signature
+        # verification still runs against shokunin-keyring.
+        run: |
+          cat >> /etc/pacman.conf <<'EOF'
+
+          [shokunin]
+          SigLevel = Required DatabaseOptional
+          Server = https://repo.ceereals.space/shokunin/$arch
+          EOF
+          # Trust the public key (build host only, ephemeral).
+          curl -fsSL https://repo.ceereals.space/shokunin/shokunin.gpg \
+            -o /tmp/shokunin.gpg
+          pacman-key --init
+          pacman-key --add /tmp/shokunin.gpg
+          pacman-key --lsign-key "$(gpg --show-keys /tmp/shokunin.gpg \
+                                       | awk '/^ +[A-F0-9]{40}/ {print $1; exit}')"
+          pacman -Sy
+
+      - name: Compute deterministic SOURCE_DATE_EPOCH
+        # Use the tag's commit time when present so re-tags reproduce.
+        run: |
+          echo "SOURCE_DATE_EPOCH=$(git -C . log -1 --pretty=%ct)" >> "${GITHUB_ENV}"
+
+      - name: Build ISO
+        run: |
+          ./iso/build.sh
+
+      - name: Locate output
+        id: locate
+        run: |
+          iso=$(ls out/*.iso | head -n1)
+          echo "iso=${iso}" >> "${GITHUB_OUTPUT}"
+          echo "base=$(basename "${iso}")" >> "${GITHUB_OUTPUT}"
+
+      - name: Generate SHA256SUMS
+        run: |
+          ( cd out && sha256sum *.iso > SHA256SUMS )
+
+      - name: Import signing key
+        env:
+          GPG_KEY: ${{ secrets.SHOKUNIN_GPG_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.gnupg && chmod 700 ~/.gnupg
+          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          echo "pinentry-mode loopback"  >> ~/.gnupg/gpg.conf
+          echo "${GPG_KEY}" | gpg --batch --import
+
+      - name: Sign ISO
+        env:
+          GPG_KEY_ID: ${{ secrets.SHOKUNIN_GPG_KEY_ID }}
+          GPG_PASSPHRASE: ${{ secrets.SHOKUNIN_GPG_PASSPHRASE }}
+          ISO: ${{ steps.locate.outputs.iso }}
+        run: |
+          gpg --batch --yes --pinentry-mode loopback \
+              --passphrase "${GPG_PASSPHRASE}" \
+              --detach-sign --armor \
+              --local-user "${GPG_KEY_ID}" \
+              --output "${ISO}.sig" "${ISO}"
+          gpg --batch --yes --pinentry-mode loopback \
+              --passphrase "${GPG_PASSPHRASE}" \
+              --detach-sign --armor \
+              --local-user "${GPG_KEY_ID}" \
+              --output "out/SHA256SUMS.sig" "out/SHA256SUMS"
+
+      - name: Upload as artifact (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: shokunin-iso
+          path: |
+            out/*.iso
+            out/*.sig
+            out/SHA256SUMS
+          retention-days: 30
+
+      - name: Publish to GitHub Releases (tag push only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/*.iso
+            out/*.sig
+            out/SHA256SUMS
+          generate_release_notes: true

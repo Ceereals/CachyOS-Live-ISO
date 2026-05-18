@@ -1,0 +1,14 @@
+################################################################################
+# Shokunin pacman mirrorlist
+#
+# Format: one `Server = URL` per line. Uncomment the closest mirror.
+# pacman.conf includes this file via:
+#   [shokunin]
+#   Include = /etc/pacman.d/shokunin-mirrorlist
+#
+# Currently only the Swiss origin is available. Geo-distributed mirrors
+# will be added as they come online.
+################################################################################
+
+## Switzerland (origin, Cloudflare-fronted)
+Server = https://repo.ceereals.space/shokunin/$arch

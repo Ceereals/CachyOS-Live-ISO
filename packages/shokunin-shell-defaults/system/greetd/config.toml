@@ -1,0 +1,18 @@
+# /etc/greetd/config.toml — Shokunin display manager (ADR-0008).
+#
+# greetd's job is tiny: ask who you are, then exec the requested session
+# as that user. tuigreet is a TUI greeter that fits in a tty. No Qt, no
+# GTK, no graphical assets — coherent with the sober pre-login posture.
+#
+# Session command launches Hyprland via uwsm when available (cleaner
+# systemd integration), with a bare `Hyprland` fallback otherwise.
+#
+# Edit anywhere — this file is `backup=` in the package, so your changes
+# are preserved across upgrades.
+
+[terminal]
+vt = 1
+
+[default_session]
+command = "tuigreet --time --remember --remember-user-session --asterisks --greeting 'Shokunin' --cmd Hyprland"
+user    = "greeter"

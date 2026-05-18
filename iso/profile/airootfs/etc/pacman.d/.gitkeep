@@ -1,0 +1,7 @@
+# Placeholder. mkarchiso fills /etc/pacman.d/ from the live env packages:
+#   - `pacman-mirrorlist`           drops /etc/pacman.d/mirrorlist
+#   - `cachyos-mirrorlist`          drops /etc/pacman.d/cachyos-mirrorlist
+#                                          and /etc/pacman.d/cachyos-v3-mirrorlist
+#   - `shokunin-mirrorlist`         drops /etc/pacman.d/shokunin-mirrorlist
+#                                          (currently unused; we Server= directly)
+# If we ever ship custom hooks under /etc/pacman.d/hooks/ they go here.
