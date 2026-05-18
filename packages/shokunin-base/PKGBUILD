@@ -18,9 +18,9 @@
 # shellcheck disable=SC2034,SC2154
 
 pkgname=shokunin-base
-pkgver=0.2.0
+pkgver=0.3.0
 pkgrel=1
-pkgdesc="Shokunin meta-package: kernel, branding, Hyprland+Quickshell stack, dev/AI tooling"
+pkgdesc="Shokunin meta-package + system tools (shokunin-update): kernel, branding, Hyprland+Quickshell stack, dev/AI tooling"
 arch=('any')
 url="https://repo.ceereals.space"
 license=('GPL-3.0-or-later')
@@ -130,7 +130,7 @@ depends=(
   'lazydocker'                    # rebuild: AUR → [shokunin]
 
   # ADR-0013 — AI tooling as first-class. CLI + chat. Editor plugins are
-  # configured by shokunin-quickshell-config, not packaged separately.
+  # configured by shokunin-shell-defaults, not packaged separately.
   'claude-code'                   # rebuild: AUR → [shokunin]
   'aichat'                        # rebuild: AUR → [shokunin]
 
@@ -156,8 +156,14 @@ depends=(
   'iwd'
 )
 
-# Empty package: no build, no installable files. `pacman -S shokunin-base`
-# expands into the dependency closure above.
+# Single shipped file: /usr/bin/shokunin-update — the user-facing system
+# update wrapper. See OPEN_QUESTIONS.md §9. Apart from this script the
+# package is metadata-only; pacman -S shokunin-base expands into the
+# dependency closure above.
+source=('shokunin-update')
+sha256sums=('SKIP')
+
 package() {
-  :
+  install -Dm755 "${srcdir}/shokunin-update" \
+    "${pkgdir}/usr/bin/shokunin-update"
 }

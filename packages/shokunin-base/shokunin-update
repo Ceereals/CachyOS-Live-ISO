@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# shokunin-update — system update entry point.
+#
+# Thin wrapper around `pacman -Syu` plus an AUR refresh. The heavy
+# lifting (Btrfs snapshots pre/post, sbctl re-signing for Secure Boot)
+# is done by pacman hooks installed by snap-pac and sbctl — see
+# ADR-0003 and ADR-0004 — so this script doesn't try to duplicate it.
+#
+# Usage:
+#   shokunin-update              # repos + AUR
+#   shokunin-update --no-aur     # repos only
+#   shokunin-update --help
+
+set -euo pipefail
+
+aur=1
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help)
+      cat <<'EOF'
+shokunin-update — system update entry point.
+
+Usage:
+  shokunin-update [--no-aur]
+
+Wraps `sudo pacman -Syu` (with snap-pac snapshots and sbctl re-signing
+handled automatically via pacman hooks) and follows with `paru -Sua`
+for AUR packages unless --no-aur is passed. Suggests a reboot if the
+kernel was updated.
+EOF
+      exit 0
+      ;;
+    --no-aur)
+      aur=0
+      shift
+      ;;
+    *)
+      echo "shokunin-update: unknown argument: $1" >&2
+      echo "Try: shokunin-update --help" >&2
+      exit 2
+      ;;
+  esac
+done
+
+logger -t shokunin-update "starting system update"
+echo "==> shokunin-update: refreshing pacman databases and upgrading…"
+
+if ! sudo pacman -Syu --noconfirm; then
+  echo "shokunin-update: pacman exited non-zero — aborting before AUR." >&2
+  logger -t shokunin-update "pacman failed; aborting"
+  exit 1
+fi
+
+if [[ "${aur}" -eq 1 ]]; then
+  if command -v paru >/dev/null 2>&1; then
+    echo
+    echo "==> shokunin-update: refreshing AUR packages…"
+    paru -Sua --noconfirm || {
+      echo "shokunin-update: paru exited non-zero." >&2
+      logger -t shokunin-update "paru failed"
+      exit 1
+    }
+  else
+    echo "shokunin-update: paru not installed — skipping AUR step."
+  fi
+fi
+
+# A pacman upgrade of linux-cachyos removes the running kernel's
+# /lib/modules/<ver>/ directory. Use that as the "reboot needed" probe;
+# no string-massaging of version numbers required.
+if [[ ! -d "/lib/modules/$(uname -r)" ]]; then
+  echo
+  echo "==> shokunin-update: kernel updated — reboot to switch to the new kernel."
+fi
+
+logger -t shokunin-update "completed"

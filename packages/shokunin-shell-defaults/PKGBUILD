@@ -1,10 +1,11 @@
 # Maintainer: Shokunin <https://repo.ceereals.space>
 #
-# shokunin-shell-defaults — default user configuration for the Shokunin
-# desktop: Quickshell on Hyprland (ADR-0005/0006), ghostty (ADR-0009),
-# neovim with the LazyVim starter (ADR-0009).
+# shokunin-shell-defaults — default configuration for the Shokunin
+# desktop shell: Quickshell on Hyprland (ADR-0005/0006), ghostty
+# (ADR-0009), neovim with the LazyVim starter (ADR-0009), and the
+# greetd display manager service (ADR-0008).
 #
-# Two install strategies are common; we use SKEL.
+# Two install strategies are common for user config; we use SKEL.
 #
 #   (a) Skel: drop files under /etc/skel/.config/. New users (and the
 #       Calamares-created account) get a personal copy at account
@@ -18,19 +19,30 @@
 #
 # (a) is friendlier and matches what most distros do. See
 # `OPEN_QUESTIONS.md` §2.
+#
+# System-wide service configs (greetd) live under system/ in the source
+# tree and install to /etc/<service>/. They are flagged `backup=` so
+# user edits are preserved as .pacnew on upgrade.
 
 # shellcheck disable=SC2034,SC2154
 
 pkgname=shokunin-shell-defaults
-pkgver=0.2.0
+pkgver=0.3.0
 pkgrel=1
-pkgdesc="Default Quickshell + Hyprland + ghostty + nvim/LazyVim configuration for Shokunin"
+pkgdesc="Default Quickshell + Hyprland + ghostty + nvim/LazyVim + greetd configuration for Shokunin"
 arch=('any')
 url="https://repo.ceereals.space"
 license=('GPL-3.0-or-later')
 depends=(
+  # Shell layer
   'hyprland'
+  'hypridle'
+  'hyprlock'
   'quickshell'
+  # Display manager (ADR-0008)
+  'greetd'
+  'greetd-tuigreet'
+  # User-facing apps
   'ghostty'
   'neovim'
   'git'           # LazyVim bootstrap clones lazy.nvim
@@ -40,6 +52,11 @@ replaces=('shokunin-quickshell-config')
 provides=('shokunin-quickshell-config')
 conflicts=('shokunin-quickshell-config')
 
+# /etc files the user may edit are tracked so changes survive upgrades.
+backup=(
+  'etc/greetd/config.toml'
+)
+
 # No source=(). makepkg's source array doesn't accept directory entries
 # (the `'config/'` trailing-slash trick is undefined behaviour and fails
 # in CI); we reference the config tree directly via $startdir below.
@@ -47,16 +64,21 @@ source=()
 sha256sums=()
 
 package() {
-  # Install the canonical, untouched version under /usr/share/ so users
-  # can diff against the upstream defaults.
+  # Install the canonical, untouched user-skel tree under /usr/share/
+  # so users can diff against the upstream defaults.
   install -d "${pkgdir}/usr/share/shokunin"
   cp -r "${startdir}/config" "${pkgdir}/usr/share/shokunin/shell-defaults"
 
-  # Drop the same files into /etc/skel/.config/ so new users get them
-  # at account-creation time. Each subdirectory of config/ maps to one
+  # Drop the user-skel tree into /etc/skel/.config/ so new users get it
+  # at account-creation time. Each subdirectory maps to one
   # ~/.config/<thing>/ tree.
   install -d "${pkgdir}/etc/skel/.config"
   for d in quickshell hypr ghostty nvim; do
     cp -r "${startdir}/config/${d}" "${pkgdir}/etc/skel/.config/${d}"
   done
+
+  # System-wide service configs go straight to /etc/<service>/. greetd
+  # reads /etc/greetd/config.toml as its only config file.
+  install -Dm644 "${startdir}/system/greetd/config.toml" \
+    "${pkgdir}/etc/greetd/config.toml"
 }

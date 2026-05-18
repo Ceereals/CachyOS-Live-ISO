@@ -1,9 +1,17 @@
-name: Desktop ISO
+name: Desktop ISO (legacy CachyOS)
+
+# Inherited from the upstream cachyos-iso fork. It builds CachyOS's
+# Desktop ISO via the legacy buildiso.sh script + the legacy archiso/
+# tree, and runs a 4×5 quickemu install matrix. None of this is part
+# of the Shokunin pipeline — see .github/workflows/build-iso.yml for
+# the real Shokunin ISO build.
+#
+# Kept for reference until iso/build.sh reaches parity (see README.md
+# §"Repository layout note"). Set to workflow_dispatch-only so it no
+# longer fires on every PR / push and pollutes the check list.
+
 on:
-  push:
-    branches:
-    - master
-  pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.ref }}
