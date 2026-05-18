@@ -40,22 +40,23 @@ replaces=('shokunin-quickshell-config')
 provides=('shokunin-quickshell-config')
 conflicts=('shokunin-quickshell-config')
 
-# `config/` is a directory in the package source. makepkg sees the
-# trailing slash and copies it recursively into $srcdir.
-source=('config/')
-sha256sums=('SKIP')
+# No source=(). makepkg's source array doesn't accept directory entries
+# (the `'config/'` trailing-slash trick is undefined behaviour and fails
+# in CI); we reference the config tree directly via $startdir below.
+source=()
+sha256sums=()
 
 package() {
   # Install the canonical, untouched version under /usr/share/ so users
   # can diff against the upstream defaults.
   install -d "${pkgdir}/usr/share/shokunin"
-  cp -r "${srcdir}/config" "${pkgdir}/usr/share/shokunin/shell-defaults"
+  cp -r "${startdir}/config" "${pkgdir}/usr/share/shokunin/shell-defaults"
 
   # Drop the same files into /etc/skel/.config/ so new users get them
   # at account-creation time. Each subdirectory of config/ maps to one
   # ~/.config/<thing>/ tree.
   install -d "${pkgdir}/etc/skel/.config"
   for d in quickshell hypr ghostty nvim; do
-    cp -r "${srcdir}/config/${d}" "${pkgdir}/etc/skel/.config/${d}"
+    cp -r "${startdir}/config/${d}" "${pkgdir}/etc/skel/.config/${d}"
   done
 }

@@ -5,6 +5,12 @@
 # is how we curate the system. The package itself ships no files.
 #
 # Source of truth for each group: ../../ADR.md.
+#
+# CI marker: built with --nodeps because the dependency closure spans
+# CachyOS, AUR rebuilds, and our own [shokunin] repo. None of those are
+# resolvable inside a vanilla Arch container at build time; resolution
+# happens at install time on a real Shokunin system.
+# shokunin-build: nodeps
 
 # PKGBUILDs are sourced by makepkg, not executed. shellcheck doesn't
 # know that, so it complains about every metadata var (pkgname, etc.)

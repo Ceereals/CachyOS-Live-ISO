@@ -6,7 +6,7 @@
 #   /etc/os-release                                  (overwrites the upstream one)
 #   /usr/share/backgrounds/shokunin/wallpaper.png    (default wallpaper)
 #   /usr/share/plymouth/themes/shokunin/             (boot splash theme)
-#   /usr/share/grub/themes/shokunin/                 (GRUB theme)
+#   /usr/share/limine/themes/shokunin/               (limine boot menu branding, ADR-0002)
 #
 # Real assets are NOT in the repo at scaffolding time. See the README
 # next to each subdirectory for what to drop in.
@@ -16,9 +16,9 @@
 # and pkgdir are injected at build time.)
 
 pkgname=shokunin-branding
-pkgver=0.1.0
+pkgver=0.2.0
 pkgrel=1
-pkgdesc="Shokunin branding: wallpaper, plymouth and GRUB themes, /etc/os-release"
+pkgdesc="Shokunin branding: wallpaper, plymouth theme, limine boot branding, /etc/os-release"
 arch=('any')
 url="https://repo.ceereals.space"
 license=('CC-BY-SA-4.0')
@@ -33,18 +33,15 @@ provides=()
 # modifications are preserved across upgrades.
 backup=('etc/os-release')
 
-# Files live next to the PKGBUILD. `source=()` uses bare filenames so
-# makepkg copies them from the package directory.
+# Only bare files go in source=(); directory trees are referenced
+# directly via $startdir in package() because makepkg's source array
+# does not support directory entries (the trailing-slash hack is
+# undefined behaviour and fails in CI).
 source=(
   'os-release'
   'wallpaper.png'      # placeholder; see README in this directory
-  'plymouth/'          # directory: drop theme files here (see plymouth/README.md)
-  'grub/'              # directory: drop theme files here (see grub/README.md)
 )
-# At scaffolding time the placeholder files are absent or empty; skip
-# the integrity check so PKGBUILD parses with `makepkg --printsrcinfo`.
-# Once real assets land, replace these with `sha256sums=('...')`.
-sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP')
+sha256sums=('SKIP' 'SKIP')
 
 package() {
   # /etc/os-release — Shokunin identity for scripts and detection.
@@ -57,11 +54,10 @@ package() {
   # Plymouth theme — boot splash. plymouth-set-default-theme(1) is run
   # by the user (or a Calamares hook) post-install.
   install -d "${pkgdir}/usr/share/plymouth/themes/shokunin"
-  cp -r "${srcdir}/plymouth/." "${pkgdir}/usr/share/plymouth/themes/shokunin/"
+  cp -r "${startdir}/plymouth/." "${pkgdir}/usr/share/plymouth/themes/shokunin/"
 
-  # GRUB theme — referenced via GRUB_THEME in /etc/default/grub. The
-  # post-install hook is left to the user; the package only ships
-  # assets, not config edits.
-  install -d "${pkgdir}/usr/share/grub/themes/shokunin"
-  cp -r "${srcdir}/grub/." "${pkgdir}/usr/share/grub/themes/shokunin/"
+  # Limine branding — wallpaper + a `limine.conf` snippet `include`d
+  # from /boot/limine.conf by a Calamares post-install hook (TODO).
+  install -d "${pkgdir}/usr/share/limine/themes/shokunin"
+  cp -r "${startdir}/limine/." "${pkgdir}/usr/share/limine/themes/shokunin/"
 }

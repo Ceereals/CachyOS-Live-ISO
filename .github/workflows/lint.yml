@@ -19,14 +19,27 @@ jobs:
       - uses: actions/checkout@v4
 
       # Scan every executable bash script + every .sh / .bash file.
-      # Excludes:
-      #   - .git/
-      #   - upstream archiso/ (legacy fork content, not ours yet)
+      # Excludes the inherited cachyos-iso fork content: archiso/,
+      # machines/, testcases/, plus the root-level util-*.sh / buildiso.sh
+      # / testiso.sh / lddd.sh scripts. README.md §"Repository layout note"
+      # says they'll go away once iso/build.sh reaches parity; until then
+      # we don't lint upstream code we haven't touched.
       - name: Run shellcheck
         uses: ludeeus/action-shellcheck@master
         with:
           severity: warning
-          ignore_paths: archiso
+          ignore_paths: >-
+            archiso
+            machines
+            testcases
+          ignore_names: >-
+            buildiso.sh
+            testiso.sh
+            lddd.sh
+            util.sh
+            util-iso.sh
+            util-iso-mount.sh
+            util-msg.sh
 
   pkgbuild-namcap:
     runs-on: ubuntu-latest
