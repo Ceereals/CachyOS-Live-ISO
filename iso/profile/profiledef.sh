@@ -52,5 +52,6 @@ file_permissions=(
   ["/etc/shadow"]="0:0:400"
   ["/etc/gshadow"]="0:0:400"
   ["/root"]="0:0:750"
+  ["/root/customize_airootfs.sh"]="0:0:755"
   ["/etc/sudoers.d"]="0:0:750"
 )
