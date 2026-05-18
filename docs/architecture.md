@@ -29,7 +29,7 @@ How Shokunin layers on top of CachyOS, and what we deliberately do
        │  shokunin-branding     │         │  systemd, glibc, ...        │
        │  shokunin-keyring      │         │                             │
        │  shokunin-mirrorlist   │         │                             │
-       │  shokunin-quickshell-… │         │                             │
+       │  shokunin-shell-…      │         │                             │
        └────────────────────────┘         └─────────────────────────────┘
               ▲                                          ▲
               │                                          │
@@ -40,12 +40,21 @@ How Shokunin layers on top of CachyOS, and what we deliberately do
 The user's machine fetches the **same kernel, mesa, and 99 % of
 everything else** as a plain CachyOS install. Shokunin contributes:
 
-- a meta-package that picks which CachyOS-and-upstream packages get
-  installed by default,
-- branding (wallpaper, plymouth, grub theme, `/etc/os-release`),
-- a single curated desktop config (Quickshell on Hyprland),
+- a meta-package (`shokunin-base`) that picks which CachyOS-and-upstream
+  packages get installed by default, plus a few small system files —
+  `/usr/bin/shokunin-update`, `/etc/nftables.conf`, DoT resolved
+  drop-in, sysctl tunables (see ADR-0014),
+- branding (wallpaper, plymouth, limine boot branding,
+  `/etc/os-release`; ADR-0002),
+- a single curated desktop config in `shokunin-shell-defaults`
+  (Quickshell + Hyprland, hypridle/hyprlock, ghostty, fish + starship +
+  tmux, nvim/LazyVim with claudecode.nvim, /etc/greetd/config.toml;
+  ADR-0005…0009),
 - a keyring + mirrorlist for our own repo so pacman trusts and fetches
   the above.
+
+For the full set of product choices and the rationale behind each, see
+[`ADR.md`](../ADR.md).
 
 ## What we do NOT do
 
@@ -58,6 +67,11 @@ everything else** as a plain CachyOS install. Shokunin contributes:
 - **We do not maintain our own infrastructure for kernel updates,
   mesa, glibc.** That's exactly the leverage we get from sitting on
   top of CachyOS.
+- **AUR rebuilds happen in our repo, not in tree.** Several packages
+  on the meta's depends list — `caelestia-meta`, `claude-code`,
+  `aichat`, `mise`, `kopia-bin`, `paru`, etc. — live in AUR. We
+  rebuild them into `[shokunin]` so pacman can resolve them. The
+  PKGBUILDs in this repo do NOT vendor those sources.
 
 ## What happens if CachyOS changes X?
 
@@ -68,7 +82,8 @@ everything else** as a plain CachyOS install. Shokunin contributes:
 | Repo URL changes                           | Update `iso/profile/{,airootfs/etc/}pacman.conf`. CI lint catches drift. |
 | `[cachyos-v3]` is renamed / removed        | Update both `pacman.conf`s and `shokunin-mirrorlist`.       |
 | CachyOS drops `linux-cachyos` for a fork   | Bump `shokunin-base` `depends=()` to the new name; bump pkgver. |
-| Default DE / installer is changed upstream | No impact. We bring our own installer and DE.               |
+| Default DE / installer is changed upstream | No impact. We bring our own installer (Calamares) and DE (Hyprland+Quickshell). |
+| AUR rebuilds we depend on get broken       | We pin the upstream commit in our `[shokunin]` rebuild PKGBUILDs and bump on green. |
 
 The general rule: changes in CachyOS *packages* never affect us;
 changes in CachyOS *repository topology* require one PR to this repo.
