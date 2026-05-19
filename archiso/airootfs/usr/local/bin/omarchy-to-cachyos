@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# omarchy-to-cachyos
+#
+# Bootstrap an installed CachyOS system into Omarchy-on-CachyOS by fetching
+# and running the upstream installer from:
+#   https://github.com/Ceereals/omarchy-on-cachyos
+#
+# Run this after CachyOS has been installed to disk (via Calamares from the
+# live ISO) and you have rebooted into the new system as your regular user.
+
+set -euo pipefail
+
+REPO_URL="${OMARCHY_ON_CACHYOS_REPO:-https://github.com/Ceereals/omarchy-on-cachyos.git}"
+REPO_REF="${OMARCHY_ON_CACHYOS_REF:-main}"
+WORK_DIR="${OMARCHY_ON_CACHYOS_DIR:-$HOME/.cache/omarchy-on-cachyos}"
+
+if [[ $EUID -eq 0 ]]; then
+    echo "Do not run omarchy-to-cachyos as root. Run as your regular user; sudo is invoked when needed." >&2
+    exit 1
+fi
+
+if ! command -v git >/dev/null 2>&1; then
+    echo "git is required. Install it first: sudo pacman -S --needed git" >&2
+    exit 1
+fi
+
+mkdir -p "$(dirname "$WORK_DIR")"
+
+if [[ -d "$WORK_DIR/.git" ]]; then
+    echo "Updating existing omarchy-on-cachyos checkout in $WORK_DIR"
+    git -C "$WORK_DIR" fetch --depth 1 origin "$REPO_REF"
+    git -C "$WORK_DIR" checkout "$REPO_REF"
+    git -C "$WORK_DIR" reset --hard "origin/$REPO_REF"
+else
+    echo "Cloning $REPO_URL ($REPO_REF) into $WORK_DIR"
+    git clone --depth 1 --branch "$REPO_REF" "$REPO_URL" "$WORK_DIR"
+fi
+
+INSTALLER="$WORK_DIR/bin/install-omarchy-on-cachyos.sh"
+if [[ ! -x "$INSTALLER" ]]; then
+    chmod +x "$INSTALLER"
+fi
+
+cd "$WORK_DIR"
+exec "$INSTALLER" "$@"
